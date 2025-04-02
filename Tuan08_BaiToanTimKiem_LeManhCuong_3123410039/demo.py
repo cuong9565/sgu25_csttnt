@@ -1,65 +1,84 @@
 from collections import deque
 from queue import PriorityQueue
+import numpy as np
 
-n = int(input("Mời bạn nhập số đĩa: "))
+lsStart = []
+lsEnd = []
+move = [[0,1],[0,-1],[1,0],[-1,0]]
 
-def heuristic(c):
-    t, f, i = 0, 0, n
-    for x in reversed(c[2]):
-        if x==i: t+=1
-        else: f+=1
-        i-=1
-    return f + (n-t)
-
+def heuristic(a, lsEnd):
+    i, cnt = 1, 0
+    for i in range(3):
+        for j in range(3):
+            if lsEnd[i][j]==0: continue
+            cnt += (a[i][j] == lsEnd[i][j])
+            pass
+    return 8 - cnt
 class node:
-    def __init__(self, c, g):
-        self.c = c
+    def __init__(self, a, g, x, y):
+        self.a = tuple(map(tuple, a))
+        self.x = x
+        self.y = y
         self.g = g
-        self.h = heuristic(c)
+        self.h = heuristic(a, lsEnd)
         self.f = g + self.h
-    def __str__(self):
-        return f"Bước {self.g}: {list(map(list,self.c))}"
     def __hash__(self):
-        return hash(tuple(map(tuple,self.c)))
+        return hash((self.a))
+    def __str__(self):
+        return f"Bước {self.g}: g={self.g}; h={self.h}; f={self.f}\n{np.matrix(self.a)}"
     def __eq__(self, other):
-        return isinstance(other, node) and self.c == other.c
+        return isinstance(other, node) and self.a == other.a
     def __lt__(self, other):
         return self.f < other.f
 
-
-def HaNoiTowel(u, end):
+def Taci(start, end):
+    res = 0
     pq = PriorityQueue()
-    pq.put(u)
+    pq.put(start)
     visited = set()
-    visited.add(u)
+    visited.add(start)
     parent = {}
-    parent[u] = -1
-    while(not pq.empty()):
+    parent[start] = -1
+    while not pq.empty():
         u = pq.get()
-        if u.c == end.c:
+        if u==end:
             end = u
+            res = 1
             break
-        for i in range(3):
-            for j in range(3): 
-                if i!=j:
-                    v_c = [deque(x) for x in u.c]
-                    v_g = u.g + 1
-                    if v_c[i] and ((not v_c[j]) or (v_c[i][0] < v_c[j][0])):
-                        v_c[j].appendleft(v_c[i].popleft())
-                        v = node(v_c, v_g)
-                        if v not in visited:
-                            visited.add(v)
-                            pq.put(v)
-                            parent[v] = u
-    res = []
-    x = end
-    while(x!=-1):
-        res.append(x)
-        x = parent[x]
-    for i in reversed(res):
-        print(i)
+        for mv in move:
+            x = mv[0] + u.x
+            y = mv[1] + u.y
+            if x>=0 and x<3 and y>=0 and y<3:
+                v_a = list(map(list, u.a))
+                v_a[x][y], v_a[u.x][u.y] = v_a[u.x][u.y], v_a[x][y]
+                v = node(v_a, u.g+1, x, y)
+                if v not in visited:
+                    visited.add(v)
+                    pq.put(v)
+                    parent[v] = u
+    if res == 1:
+        i = end
+        res = []
+        while i!=-1:
+            res.append(i)
+            i = parent[i]
+        for x in reversed(res):
+            print(x)
+    else: print("Không tìm thấy đường đi!!!")
 
-start = node([deque(range(1, n+1)), deque(), deque()], 0)
-end = node([deque(), deque(), deque(range(1, n+1))], 0)
+lsStart = []
+lsEnd = [[1,2,3],[4,5,6],[7,8,0]]
+start = None
+end = node(lsEnd, 0, 2, 2)
 
-HaNoiTowel(start, end)
+for i in range(1, 3+1):
+    ls = list(map(int, input(f"Nhập các số phân biệt từ 0 -> 8. Mời nhập trạng thái dòng {i}: ").split(' ')))
+    lsStart.append(ls)
+
+for i in range(3):
+    for j in range(3):
+        if(lsStart[i][j]==0):
+            start = node(lsStart, 0, i, j)
+            break
+
+Taci(start, end)
